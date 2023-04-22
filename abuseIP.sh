@@ -46,7 +46,7 @@ function check_ufw {
 	truncate -s 0 test.ip
 
 	# build new test.ip file from ufw logs which checks against abuse ip databse
-	sudo pygrep -p 'SRC=([\d\.]+)\s+DST' '1' -u -f /var/log/ufw.log |
+	sudo sed -En 's/.*SRC=([0-9\.]+)\s+DST.*/\1/p' /var/log/ufw.log | sort -u |
 		while IFS= read -r ip; do
 			check_ip "$ip" >> test.ip
 		done

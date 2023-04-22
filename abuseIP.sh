@@ -83,17 +83,6 @@ function add_rules {
 		wait
 	fi
 	
-	# If commandline arg provided, read in file provided.
-	if [[ -n $1 ]]; then
-		while IFS= read -r ip; do
-			if ! grep -q "^${ip}$" ipset.list && ! grep -Eq "^${ip}.*timeout" ipset.list; then
-				sudo ipset add myset "$ip"
-			fi
-		done < "$1"
-		sudo netfilter-persistent save
-		exit
-	fi
-
 	# fzf multiselect list for adding to ipset
 	if [[ $fuzzy == True ]]; then
 		mapfile -t iplist < <(find "$PWD" -maxdepth 1 -type f -iname "*.ip" | fzf -m --reverse)
@@ -149,7 +138,7 @@ do
   case "$opt" in
     c) checkerip=True ; check_ip_arg="$OPTARG";;
     g) getblock=True ;;
-    a) addrules=True ; add_rules_arg="$OPTARG" ;;
+    a) addrules=True ;;
 		u) checkufw=True ;;
 		f) fuzzy=True ;;
 		A) auto=True ;;
@@ -166,5 +155,5 @@ sense_check
 # Run functions...
 [[ $checkerip == True ]] && check_ip "$check_ip_arg"
 [[ $getblock == True ]] && get_block
-[[ $addrules == True ]] && add_rules "$add_rules_arg"
+[[ $addrules == True ]] && add_rules
 [[ $checkufw == True ]] && check_ufw

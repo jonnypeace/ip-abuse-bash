@@ -20,4 +20,4 @@ Also requires to make sure iptables is persistent after new rule
 sudo dpkg-reconfigure iptables-persistent
 ```
 
-
+You will also need an API key from abuseipdb.com and sign up for an account

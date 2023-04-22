@@ -22,6 +22,7 @@ function sense_check {
 }
 
 function check_ip {
+  #checks ip and outputs to json file
 	local json_file='newest_ip_check.json'
 	curl -sG https://api.abuseipdb.com/api/v2/check \
 		--data-urlencode "ipAddress=$1" \
@@ -38,9 +39,6 @@ function check_ip {
 }
 
 function check_ufw {
-
-	sense_check
-
 	# Get a list of current ips in block list.
 	sudo ipset --list > ipset.list
 	

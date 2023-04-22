@@ -21,3 +21,9 @@ sudo dpkg-reconfigure iptables-persistent
 ```
 
 You will also need an API key from abuseipdb.com and sign up for an account
+
+Dependencies....
+
+```bash
+apt install ipset-persistent netfilter-persistent iptables-persistent iptables sed jq ipset fzf curl
+```

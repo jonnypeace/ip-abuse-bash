@@ -172,6 +172,8 @@ function add_rules_auto {
 function help {
   cat << EOF
 
+On first run you will need the 10,000 IPs, so run with -g flag.
+
 Option -c : check if ip is in databse, run ./abuseIP.sh -c 123.12.123.12
 Option -g : Get 10,000 IP list from database, no further args required
 Option -v : adds verbose to ip checking -c option only

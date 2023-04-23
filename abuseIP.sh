@@ -140,11 +140,11 @@ do
   case "$opt" in
     c) checkerip=True ; check_ip_arg="$OPTARG";;
     g) getblock=True ;;
-		u) checkufw=True ;;
-		f) fuzzy=True ;;
-		A) auto=True ;;
-		F) flush=True ;;
-		v) verbose=True ;;
+    u) checkufw=True ;;
+    f) fuzzy=True ;;
+    A) auto=True ;;
+    F) flush=True ;;
+    v) verbose=True ;;
     h) help ;;
     *) echo 'wrong selection, exit...' ;;
   esac

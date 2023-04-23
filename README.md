@@ -5,7 +5,7 @@ This script is still rough around the edges and still requires a lot of testing.
 Requires ipset list...
 
 ```bash
-ipset create myset-ip hash:ip
+ipset create myset hash:ip
 ```
 
 Requires iptables rule 

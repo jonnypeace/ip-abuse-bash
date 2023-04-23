@@ -158,6 +158,5 @@ sense_check
 # Run functions...
 [[ $checkerip == True ]] && check_ip "$check_ip_arg"
 [[ $getblock == True ]] && get_block
-[[ $fuzzy == True ]] && add_rules_fuz
-[[ $auto == True ]] && add_rules_auto
 [[ $checkufw == True ]] && check_ufw
+[[ $fuzzy == True ]] && add_rules_fuz || [[ $auto == True ]] && add_rules_auto

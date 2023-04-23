@@ -28,4 +28,8 @@ Also requires to make sure iptables is persistent after new rule
 sudo dpkg-reconfigure iptables-persistent
 ```
 
+Store your api.key in the same folder as this script, with filename api.key
+
+This script will save files in it's current directory, so maybe best keeping in this git directory
+
 You will also need an API key from abuseipdb.com and sign up for an account

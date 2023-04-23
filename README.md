@@ -2,6 +2,14 @@ Gather data from abuse IP DB and update firewall rules using ipset
 
 This script is still rough around the edges and still requires a lot of testing.
 
+Dependencies....
+
+```bash
+apt install ipset-persistent netfilter-persistent iptables-persistent iptables sed jq ipset fzf curl
+```
+
+I've set this up to work alongside crowdsec, so you will see some syntax supporting this alongside... mainly for the timeout conditions.
+
 Requires ipset list...
 
 ```bash
@@ -21,9 +29,3 @@ sudo dpkg-reconfigure iptables-persistent
 ```
 
 You will also need an API key from abuseipdb.com and sign up for an account
-
-Dependencies....
-
-```bash
-apt install ipset-persistent netfilter-persistent iptables-persistent iptables sed jq ipset fzf curl
-```

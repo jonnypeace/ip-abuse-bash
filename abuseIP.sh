@@ -110,7 +110,9 @@ function add_rules_auto {
 		
 	for file in "${iplist[@]}"; do
 		sort -u "$file" > "/tmp/${file##*/}"
-		while IFS= read -r ip ignore; do
+		while IFS= read -r file; do
+		  set -- $file
+		  ip="$1"
 			if ! grep -q "^${ip}$" ipset.list && ! grep -Eq "^${ip}.*timeout" ipset.list; then
 				sudo ipset add myset "${ip}"
 			fi

@@ -15,10 +15,8 @@ if ! which curl > /dev/null; then echo 'curl is required' ; exit 1 ; fi
 
 function sense_check {
 	[[ $verbose == True ]] && [[ $checkufw == True ]] && echo '-v verbose does not work with checking ufw -u' && exit 1
-	[[ $addrules == True ]] && [[ $checkufw == True ]] && echo '-a add_rules does not work with check_ufw -u' && exit 1
-	[[ $fuzzy == True ]] && [[ -z $addrules ]] && echo '-f fuzzy rules requires add rules -a option'
-	[[ $flush == True ]] && [[ -z $addrules ]] && echo '-F flush rule requires add rules -a option'
-	[[ $auto == True ]] && [[ -z $addrules ]] && echo '-A automation rule requires add rules -a option'
+	[[ $fuzzy == True ]] && [[ $auto == True ]] && echo '-f fuzzy rules does not work with -A automation rules'
+	[[ $flush == True ]] && [[ -z $fuzzy ]] || [[ -z $auto ]] && echo '-F flush rule requires fuzzy add rules -f option or -A option. See help with -h'
 }
 
 function check_ip {
@@ -72,8 +70,7 @@ function get_block {
 	jq -r '.data[].ipAddress' "$new_json" > "${new_json}.ip"
 }
 
-function add_rules {
-
+function add_rules_fuz {
 	# Get a list of current ips in block list.
 	sudo ipset --list > ipset.list
 	
@@ -84,37 +81,43 @@ function add_rules {
 	fi
 	
 	# fzf multiselect list for adding to ipset
-	if [[ $fuzzy == True ]]; then
-		mapfile -t iplist < <(find "$PWD" -maxdepth 1 -type f -iname "*.ip" | fzf -m --reverse)
+	mapfile -t iplist < <(find "$PWD" -maxdepth 1 -type f -iname "*.ip" | fzf -m --reverse)
 
-		for file in "${iplist[@]}"; do
-			sort -u "$file" > "/tmp/${file##*/}"
-			while IFS= read -r line; do
-				set -- $line
-				ip="$1"
-				if ! grep -q "^${ip}$" ipset.list && ! grep -Eq "^${ip}.*timeout" ipset.list; then
-					sudo ipset add myset "${ip}"
-				fi
-			done < "/tmp/${file##*/}"
-		done
-		sudo netfilter-persistent save
-		exit
+	for file in "${iplist[@]}"; do
+		sort -u "$file" > "/tmp/${file##*/}"
+		while IFS= read -r line; do
+			set -- $line
+			ip="$1"
+			if ! grep -q "^${ip}$" ipset.list && ! grep -Eq "^${ip}.*timeout" ipset.list; then
+				sudo ipset add myset "${ip}"
+			fi
+		done < "/tmp/${file##*/}"
+	done
+	sudo netfilter-persistent save
+	exit
+}
+function add_rules_auto {
+	# Get a list of current ips in block list.
+	sudo ipset --list > ipset.list
+	
+	# If flush option is give on commandline, then flush ipset before adding new rules
+	if [[ $flush == True ]]; then
+		sudo ipset flush myset
+		wait
 	fi
 
-	if [[ $auto == True ]]; then
-		mapfile -t iplist < <(find "$PWD" -maxdepth 1 -type f -iname "*.ip")
+	mapfile -t iplist < <(find "$PWD" -maxdepth 1 -type f -iname "*.ip")
 		
-		for file in "${iplist[@]}"; do
-			sort -u "$file" > "/tmp/${file##*/}"
-			while IFS= read -r ip ignore; do
-				if ! grep -q "^${ip}$" ipset.list && ! grep -Eq "^${ip}.*timeout" ipset.list; then
-					sudo ipset add myset "${ip}"
-				fi
-			done < "/tmp/${file##*/}"
-		done
-		sudo netfilter-persistent save
-		exit
-	fi
+	for file in "${iplist[@]}"; do
+		sort -u "$file" > "/tmp/${file##*/}"
+		while IFS= read -r ip ignore; do
+			if ! grep -q "^${ip}$" ipset.list && ! grep -Eq "^${ip}.*timeout" ipset.list; then
+				sudo ipset add myset "${ip}"
+			fi
+		done < "/tmp/${file##*/}"
+	done
+	sudo netfilter-persistent save
+	exit
 }
 
 function help {
@@ -122,7 +125,6 @@ function help {
 
 Option -c : check if ip is in databse, run ./abuseIP.sh -c 123.12.123.12
 Option -g : Get 10,000 IP list from database, no further args required
-Option -a : Add rules to ipset list. i.e. ./abuseIP.sh -a file.with.ip.addresses
 Option -v : adds verbose to ip checking -c option only
 Option -f : adds fuzzy file selection to adding ip rules to ipset. Requires -a option
 Option -A : adds automation script for set files to update. Requires -a option.
@@ -133,12 +135,11 @@ Option -h : Help tips :D
 EOF
 }
 
-while getopts c:AFvghafu opt
+while getopts c:AFvghfu opt
 do
   case "$opt" in
     c) checkerip=True ; check_ip_arg="$OPTARG";;
     g) getblock=True ;;
-    a) addrules=True ;;
 		u) checkufw=True ;;
 		f) fuzzy=True ;;
 		A) auto=True ;;
@@ -155,5 +156,6 @@ sense_check
 # Run functions...
 [[ $checkerip == True ]] && check_ip "$check_ip_arg"
 [[ $getblock == True ]] && get_block
-[[ $addrules == True ]] && add_rules
+[[ $fuzzy == True ]] && add_rules_fuz
+[[ $auto == True ]] && add_rules_auto
 [[ $checkufw == True ]] && check_ufw

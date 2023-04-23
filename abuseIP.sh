@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #now=$(printf '%(%d-%m-%Y_%H:%M)T\n')
-API_KEY='ENTER API KEY FROM abuseipdb.com'
+API_KEY=$(< api.key)
 
 if ! dpkg -l | grep -q 'ipset-persistent'; then echo 'Requires ipset-persistent'; exit 1 ; fi
 if ! dpkg -l | grep -q 'netfilter-persistent'; then echo 'Requires netfilter-persistent'; exit 1 ; fi
@@ -49,15 +49,28 @@ function check_ufw {
 			check_ip "$ip" >> test.ip
 		done
 		
+	# coounter for number of ips
+	a=0
+	ip_num=$(wc -l test.ip | cut -d ' ' -f1)
 	# read in abuse ip database file and add ip to set if doesn't exist
 	while IFS= read -r line; do
 		set -- $line
+		ip="$1"
 		if [[ ${3/,/} -gt 20 && ${7/,/} -gt 5 ]]; then
+			# This currently filters out ipv6, but later versions i'll deal with this...
+			if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
+				printf '%s\n' "$ip might be an ipv6 address. Will support in a future version"
+				(( ip_num-- ))
+				continue
+			fi
       if ! grep -q "^${1}$" ipset.list && ! grep -Eq "^${1}.*timeout" ipset.list ; then
        	sudo ipset add myset "$1"
       fi
+			(( a++ ))
+			printf '%s\033[0K\r' "Progressing ips $a of $ip_num total"
 		fi
 	done < test.ip
+	printf '\n'
 	}
 
 function get_block {
@@ -82,17 +95,32 @@ function add_rules_fuz {
 	
 	# fzf multiselect list for adding to ipset
 	mapfile -t iplist < <(find "$PWD" -maxdepth 1 -type f -iname "*.ip" | fzf -m --reverse)
-
+	# coounters for file number b and ip number a
+	a=0
+	b=1
+	file_num="${#iplist[@]}"
 	for file in "${iplist[@]}"; do
 		sort -u "$file" > "/tmp/${file##*/}"
+		ip_line=$(wc -l "/tmp/${file##*/}" | cut -d ' ' -f1)
+		ip_num=$(( ip_num + ip_line ))
 		while IFS= read -r line; do
 			set -- $line
 			ip="$1"
+			# This currently filters out ipv6, but later versions i'll deal with this...
+			if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
+				printf '%s\n' "$ip might be an ipv6 address. Will support in a future version"
+				(( ip_num-- ))
+				continue
+			fi
 			if ! grep -q "^${ip}$" ipset.list && ! grep -Eq "^${ip}.*timeout" ipset.list; then
 				sudo ipset add myset "${ip}"
 			fi
+			(( a++ ))
+			printf '%s\033[0K\r' "Progressing file $b of $file_num, ips $a of $ip_num total"
 		done < "/tmp/${file##*/}"
+		(( b++ ))
 	done
+	printf '\n'
 	sudo netfilter-persistent save
 	exit
 }
@@ -107,17 +135,32 @@ function add_rules_auto {
 	fi
 
 	mapfile -t iplist < <(find "$PWD" -maxdepth 1 -type f -iname "*.ip")
-		
+	# counters for file number b and ip number a
+	a=0	
+	b=1
+	file_num="${#iplist[@]}"
 	for file in "${iplist[@]}"; do
 		sort -u "$file" > "/tmp/${file##*/}"
-		while IFS= read -r file; do
-		  set -- $file
+		ip_line=$(wc -l "/tmp/${file##*/}" | cut -d ' ' -f1)
+		ip_num=$(( ip_num + ip_line ))
+		while IFS= read -r line; do
+		  set -- $line
 		  ip="$1"
+			# This currently filters out ipv6, but later versions i'll deal with this...
+			if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
+				printf '%s\n' "$ip might be an ipv6 address. Will support in a future version"
+				(( ip_num-- ))
+				continue
+			fi
 			if ! grep -q "^${ip}$" ipset.list && ! grep -Eq "^${ip}.*timeout" ipset.list; then
 				sudo ipset add myset "${ip}"
 			fi
+			(( a++ ))
+			printf '%s\033[0K\r' "Progressing file $b of $file_num, ips $a of $ip_num total"
 		done < "/tmp/${file##*/}"
+		(( b++ ))
 	done
+	printf '\n'
 	sudo netfilter-persistent save
 	exit
 }

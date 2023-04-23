@@ -16,7 +16,7 @@ if ! which curl > /dev/null; then echo 'curl is required' ; exit 1 ; fi
 function sense_check {
 	[[ $verbose == True ]] && [[ $checkufw == True ]] && echo '-v verbose does not work with checking ufw -u' && exit 1
 	[[ $fuzzy == True ]] && [[ $auto == True ]] && echo '-f fuzzy rules does not work with -A automation rules'
-	[[ $flush == True ]] && [[ -z $fuzzy ]] || [[ $flush == True ]] && [[ -z $auto ]] && echo '-F flush rule requires fuzzy -f option or automation -A option. See help with -h'
+	[[ $flush == True ]] && [[ -z $fuzzy ]] || [[ $flush == True ]] && [[ -z $auto ]] && echo '-F flush rule requires fuzzy add rules -f option or -A option. See help with -h'
 }
 
 function check_ip {
@@ -106,17 +106,19 @@ function add_rules_fuz {
 		while IFS= read -r line; do
 			set -- $line
 			ip="$1"
-			# This currently filters out ipv6, but later versions i'll deal with this...
-			if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
-				printf '%s\n' "$ip might be an ipv6 address. Will support in a future version"
-				(( ip_num-- ))
-				continue
+			if [[ $# == 1 || ${3/,/} -gt 20 && ${7/,/} -gt 5 ]]; then
+				# This currently filters out ipv6, but later versions i'll deal with this...
+				if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
+					printf '%s\n' "$ip might be an ipv6 address. Will support in a future version"
+					(( ip_num-- ))
+					continue
+				fi
+				if ! grep -q "^${ip}$" ipset.list && ! grep -Eq "^${ip}.*timeout" ipset.list; then
+					sudo ipset add myset "${ip}"
+				fi
+				(( a++ ))
+				printf '%s\033[0K\r' "Progressing file $b of $file_num, ips $a of $ip_num total"
 			fi
-			if ! grep -q "^${ip}$" ipset.list && ! grep -Eq "^${ip}.*timeout" ipset.list; then
-				sudo ipset add myset "${ip}"
-			fi
-			(( a++ ))
-			printf '%s\033[0K\r' "Progressing file $b of $file_num, ips $a of $ip_num total"
 		done < "/tmp/${file##*/}"
 		(( b++ ))
 	done
@@ -146,17 +148,19 @@ function add_rules_auto {
 		while IFS= read -r line; do
 		  set -- $line
 		  ip="$1"
-			# This currently filters out ipv6, but later versions i'll deal with this...
-			if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
-				printf '%s\n' "$ip might be an ipv6 address. Will support in a future version"
-				(( ip_num-- ))
-				continue
+			if [[ $# == 1 || ${3/,/} -gt 20 && ${7/,/} -gt 5 ]]; then
+				# This currently filters out ipv6, but later versions i'll deal with this...
+				if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
+					printf '%s\n' "$ip might be an ipv6 address. Will support in a future version"
+					(( ip_num-- ))
+					continue
+				fi
+				if ! grep -q "^${ip}$" ipset.list && ! grep -Eq "^${ip}.*timeout" ipset.list; then
+					sudo ipset add myset "${ip}"
+				fi
+				(( a++ ))
+				printf '%s\033[0K\r' "Progressing file $b of $file_num, ips $a of $ip_num total"
 			fi
-			if ! grep -q "^${ip}$" ipset.list && ! grep -Eq "^${ip}.*timeout" ipset.list; then
-				sudo ipset add myset "${ip}"
-			fi
-			(( a++ ))
-			printf '%s\033[0K\r' "Progressing file $b of $file_num, ips $a of $ip_num total"
 		done < "/tmp/${file##*/}"
 		(( b++ ))
 	done

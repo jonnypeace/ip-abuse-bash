@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# 2 week timeout in seconds
+timeout='1209600'
+
 # file-path-source ---- once ipabuse.conf updated, run setup.sh
 
 #now=$(printf '%(%d-%m-%Y_%H:%M)T\n')
@@ -68,7 +71,7 @@ function check_ufw {
         continue
       fi
       if ! grep -q "^${1}$" "$ipsets_file" && ! grep -Eq "^${1}.*timeout" "$ipsets_file" ; then
-         sudo ipset add myset "$1"
+         sudo ipset add myset "$1" timeout "$timeout"
       fi
       (( a++ ))
       printf '%s\033[0K\r' "Progressing ips $a of $ip_num total"
@@ -99,7 +102,7 @@ function add_rules_fuz {
   fi
   
   # fzf multiselect list for adding to ipset
-  mapfile -t iplist < <(find "$ip__file_path" -maxdepth 1 -type f -iname "*.ip" | fzf -m --reverse)
+  mapfile -t iplist < <(find "$ip_file_path" -maxdepth 1 -type f -iname "*.ip" | fzf -m --reverse)
   # coounters for file number b and ip number a
   a=0
   b=1
@@ -119,7 +122,7 @@ function add_rules_fuz {
           continue
         fi
         if ! grep -q "^${ip}$" "$ipsets_file" && ! grep -Eq "^${ip}.*timeout" "$ipsets_file"; then
-          sudo ipset add myset "${ip}"
+          sudo ipset add myset "${ip}" timeout "$timeout"
         fi
         (( a++ ))
         printf '%s\033[0K\r' "Progressing file $b of $file_num, ips $a of $ip_num total"
@@ -142,7 +145,7 @@ function add_rules_auto {
     wait
   fi
 
-  mapfile -t iplist < <(find "$ip__file_path" -maxdepth 1 -type f -iname "*.ip")
+  mapfile -t iplist < <(find "$ip_file_path" -maxdepth 1 -type f -iname "*.ip")
   # counters for file number b and ip number a
   a=0  
   b=1
@@ -162,7 +165,7 @@ function add_rules_auto {
           continue
         fi
         if ! grep -q "^${ip}$" "$ipsets_file" && ! grep -Eq "^${ip}.*timeout" "$ipsets_file"; then
-          sudo ipset add myset "${ip}"
+          sudo ipset add myset "${ip}" timeout "$timeout"
         fi
         (( a++ ))
         printf '%s\033[0K\r' "Progressing file $b of $file_num, ips $a of $ip_num total"

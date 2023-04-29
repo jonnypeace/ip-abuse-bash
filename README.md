@@ -33,3 +33,11 @@ Store your api.key in the same folder as this script, with filename api.key
 This script will save files in it's current directory, so maybe best keeping in this git directory
 
 You will also need an API key from abuseipdb.com and sign up for an account
+
+I noticed some issues with paths when running in crontab, so you will want to modify the variable:
+
+```bash
+ip_file_path="$HOME/git/ip-abuse-bash"
+```
+
+This path will be the directory for the git repo.

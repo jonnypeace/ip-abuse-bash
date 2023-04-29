@@ -14,12 +14,14 @@ Requires ipset list, 2 week timeout included...
 
 ```bash
 ipset create myset hash:ip timeout 1209600
+ipset create myset6 hash:net family inet6 timeout 1209600
 ```
 
 Requires iptables rule 
 
 ```bash
 iptables -I INPUT -m set --match-set myset src -j DROP
+ip6tables -I INPUT -m set --match-set myset6 src -j DROP
 ```
 
 Also requires to make sure iptables is persistent after new rule

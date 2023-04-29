@@ -10,10 +10,10 @@ apt install ipset-persistent netfilter-persistent iptables-persistent iptables s
 
 I've set this up to work alongside crowdsec, so you will see some syntax supporting this alongside... mainly for the timeout conditions.
 
-Requires ipset list...
+Requires ipset list, 2 week timeout included...
 
 ```bash
-ipset create myset hash:ip
+ipset create myset hash:ip timeout 1209600
 ```
 
 Requires iptables rule 

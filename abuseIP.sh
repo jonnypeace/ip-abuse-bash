@@ -83,7 +83,9 @@ function check_ufw {
     if [[ ${3/,/} -gt 20 && ${7/,/} -gt 5 ]]; then
       # This currently filters out ipv6, but later versions i'll deal with this...
       if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
-        sudo ipset add myset6 "$ip"/128 timeout "$timeout"
+        if ! grep -q "^${1}$" "$ipsets_file" && ! grep -Eq "^${1}.*timeout" "$ipsets_file" ; then
+          sudo ipset add myset6 "$ip"/128 timeout "$timeout"
+        fi
         continue
       fi
       if ! grep -q "^${1}$" "$ipsets_file" && ! grep -Eq "^${1}.*timeout" "$ipsets_file" ; then
@@ -133,7 +135,9 @@ function add_rules_fuz {
       if [[ $# == 1 || ${3/,/} -gt 20 && ${7/,/} -gt 5 ]]; then
         # This currently filters out ipv6, but later versions i'll deal with this...
         if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
-          sudo ipset add myset6 "$ip"/128 timeout "$timeout"
+          if ! grep -q "^${1}$" "$ipsets_file" && ! grep -Eq "^${1}.*timeout" "$ipsets_file" ; then
+            sudo ipset add myset6 "$ip"/128 timeout "$timeout"
+          fi  
           continue
         fi
         if ! grep -q "^${ip}$" "$ipsets_file" && ! grep -Eq "^${ip}.*timeout" "$ipsets_file"; then
@@ -175,7 +179,9 @@ function add_rules_auto {
       if [[ $# == 1 || ${3/,/} -gt 20 && ${7/,/} -gt 5 ]]; then
         # This currently filters out ipv6, but later versions i'll deal with this...
         if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
-          sudo ipset add myset6 "$ip"/128 timeout "$timeout"
+          if ! grep -q "^${1}$" "$ipsets_file" && ! grep -Eq "^${1}.*timeout" "$ipsets_file" ; then
+            sudo ipset add myset6 "$ip"/128 timeout "$timeout"
+          fi  
           continue
         fi
         if ! grep -q "^${ip}$" "$ipsets_file" && ! grep -Eq "^${ip}.*timeout" "$ipsets_file"; then

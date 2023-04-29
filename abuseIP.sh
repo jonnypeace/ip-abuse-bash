@@ -3,7 +3,24 @@
 # 2 week timeout in seconds
 timeout='1209600'
 
-# file-path-source ---- once ipabuse.conf updated, run setup.sh
+# This will be used in the find command, to find all .ip files to scan and automate ipset rules.
+ip_file_path="$HOME/git/ip-abuse-bash"
+
+# API Key file from abuse ip db
+my_abuse_API="$ip_file_path/api.key"
+
+# json file for checking single ips. Created when ./script.sh -c 123.12.123.12 flag & ip is used.
+# Will also be created when run to check against UFW logs, with the -u flag.
+json_file="$ip_file_path/newest_ip_check.json"
+
+# List of all ips in ipsets.
+ipsets_file="$ip_file_path/ipset.list"
+
+# used for checking UFW logs, and filtering ips. These ips will be used against the API database to check confidence.
+testip="$ip_file_path/test.ip"
+
+# This will be used to source 10,000 bad addresses to block
+new_json="$ip_file_path/new.block.json"
 
 #now=$(printf '%(%d-%m-%Y_%H:%M)T\n')
 API_KEY=$(< "$my_abuse_API")

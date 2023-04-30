@@ -80,4 +80,4 @@ There are not a lot of options, and for automation in crontab, i run...
 ```bash
 0 */3 * * * /home/jonny/ip-abuse-bash/abuseIP.sh -gA > /dev/null && echo 'database updated and added to ipset'
 */30 * * * * /home/jonny/ip-abuse-bash/abuseIP.sh -u > /dev/null && echo 'ufw log checked and ips added to ipset'
-```s
+```

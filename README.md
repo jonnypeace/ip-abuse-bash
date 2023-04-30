@@ -1,14 +1,18 @@
-Gather data from abuse IP DB and update firewall rules using ipset
+## The why..
 
-This script is still rough around the edges and still requires a lot of testing.
+Gather data from abuse IP database and update firewall rules using ipset
 
-Dependencies....
+This script is fairly recent, so might need some modifications.
+
+## Dependencies....
 
 ```bash
 apt install ipset-persistent netfilter-persistent iptables-persistent iptables sed jq ipset fzf curl
 ```
 
-I've set this up to work alongside crowdsec, so you will see some syntax supporting this alongside... mainly for the timeout conditions.
+I've set this up to work alongside crowdsec, so you get another way of veriying your traffic.
+
+## setup ipset and iptables
 
 Requires ipset list, 2 week timeout included...
 
@@ -30,16 +34,50 @@ Also requires to make sure iptables is persistent after new rule
 sudo dpkg-reconfigure iptables-persistent
 ```
 
+## This script..
+
+Githuib link..
+
+```bash
+git clone https://github.com/jonnypeace/ip-abuse-bash.git
+```
+
+You will also need an API key from abuseipdb.com and sign up for an account.
+
 Store your api.key in the same folder as this script, with filename api.key
 
 This script will save files in it's current directory, so maybe best keeping in this git directory
 
-You will also need an API key from abuseipdb.com and sign up for an account
-
-I noticed some issues with paths when running in crontab, so you will want to modify the variable:
+You will want to modify the variable for the location you are using for this repo.
 
 ```bash
 ip_file_path="$HOME/git/ip-abuse-bash"
 ```
 
-This path will be the directory for the git repo.
+Run this for some help...
+
+```bash
+./abuseIP.sh -h
+```
+
+Output:
+
+```bash
+On first run you will need the 10,000 IPs, so run with -g flag.
+
+Option -c : check if ip is in databse, run ./abuseIP.sh -c 123.12.123.12
+Option -g : Get 10,000 IP list from database, no further args required
+Option -v : adds verbose to ip checking -c option only
+Option -f : adds fuzzy file selection to adding ip rules to ipset. Any file ending in .ip
+Option -A : adds automation script for set files to update, any file ending in .ip
+Option -F : Flushes ipset rules, requires -f or -A option.
+Option -u : Check ufw logs and update IPSET - DO NOT USE -v VERBOSE!!
+Option -h : Help tips :D
+```
+
+There are not a lot of options, and for automation in crontab, i run...
+
+```bash
+0 */3 * * * /home/jonny/ip-abuse-bash/abuseIP.sh -gA > /dev/null && echo 'database updated and added to ipset'
+*/30 * * * * /home/jonny/ip-abuse-bash/abuseIP.sh -u > /dev/null && echo 'ufw log checked and ips added to ipset'
+```s

@@ -36,10 +36,11 @@ if ! which fzf > /dev/null; then echo 'fzf is required' ; exit 1 ; fi
 if ! which curl > /dev/null; then echo 'curl is required' ; exit 1 ; fi
 
 function sense_check {
-  [[ $verbose == True ]] && [[ $checkufw == True ]] && echo '-v verbose does not work with checking ufw -u' && exit 1
-  [[ $fuzzy == True ]] && [[ $auto == True ]] && echo '-f fuzzy rules does not work with -A automation rules'
-  [[ $flush == True ]] && [[ -z $fuzzy ]] || [[ $flush == True ]] && [[ -z $auto ]] && echo '-F flush rule requires fuzzy add rules -f option or -A option. See help with -h'
-}
+  [[ $verbose == True ]] && [[ $checkufw == True || $auto == True ||
+    $fuzzy == True || $getblock ]] && echo '-v verbose only works when checking single IP, i.e. the -c option' && exit 1
+
+  [[ $fuzzy == True ]] && [[ $auto == True ]] && echo '-f fuzzy rules does not work with -A automation rules' && exit 1
+  }
 
 function check_ip {
   #checks ip and outputs to json file
@@ -81,7 +82,7 @@ function check_ufw {
     set -- $line
     ip="$1"
     if [[ ${3/,/} -gt 20 && ${7/,/} -gt 5 ]]; then
-      # This currently filters out ipv6, but later versions i'll deal with this...
+      # This Filters out ipv6
       if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
         if ! grep -q "^${1}$" "$ipsets_file" && ! grep -Eq "^${1}.*timeout" "$ipsets_file" ; then
           sudo ipset add myset6 "$ip"/128 timeout "$timeout"
@@ -113,12 +114,6 @@ function add_rules_fuz {
   #ipsets_file='/home/jonny/ip-abuse-bash/ipset.list'
   sudo ipset --list > "$ipsets_file"
   
-  # If flush option is give on commandline, then flush ipset before adding new rules
-  if [[ $flush == True ]]; then
-    sudo ipset flush myset
-    wait
-  fi
-  
   # fzf multiselect list for adding to ipset
   mapfile -t iplist < <(find "$ip_file_path" -maxdepth 1 -type f -iname "*.ip" | fzf -m --reverse)
   # coounters for file number b and ip number a
@@ -133,7 +128,7 @@ function add_rules_fuz {
       set -- $line
       ip="$1"
       if [[ $# == 1 || ${3/,/} -gt 20 && ${7/,/} -gt 5 ]]; then
-        # This currently filters out ipv6, but later versions i'll deal with this...
+        # This filters out ipv6
         if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
           if ! grep -q "^${1}$" "$ipsets_file" && ! grep -Eq "^${1}.*timeout" "$ipsets_file" ; then
             sudo ipset add myset6 "$ip"/128 timeout "$timeout"
@@ -157,12 +152,6 @@ function add_rules_auto {
   # Get a list of current ips in block list.
   #ipsets_file='/home/jonny/ip-abuse-bash/ipset.list'
   sudo ipset --list > "$ipsets_file"
-  
-  # If flush option is give on commandline, then flush ipset before adding new rules
-  if [[ $flush == True ]]; then
-    sudo ipset flush myset
-    wait
-  fi
 
   mapfile -t iplist < <(find "$ip_file_path" -maxdepth 1 -type f -iname "*.ip")
   # counters for file number b and ip number a
@@ -177,7 +166,7 @@ function add_rules_auto {
       set -- $line
       ip="$1"
       if [[ $# == 1 || ${3/,/} -gt 20 && ${7/,/} -gt 5 ]]; then
-        # This currently filters out ipv6, but later versions i'll deal with this...
+        # This filters out ipv6
         if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
           if ! grep -q "^${1}$" "$ipsets_file" && ! grep -Eq "^${1}.*timeout" "$ipsets_file" ; then
             sudo ipset add myset6 "$ip"/128 timeout "$timeout"
@@ -208,14 +197,13 @@ Option -g : Get 10,000 IP list from database, no further args required
 Option -v : adds verbose to ip checking -c option only
 Option -f : adds fuzzy file selection to adding ip rules to ipset. Any file ending in .ip
 Option -A : adds automation script for set files to update, any file ending in .ip
-Option -F : Flushes ipset rules, requires -f or -A option.
 Option -u : Check ufw logs and update IPSET - DO NOT USE -v VERBOSE!!
 Option -h : Help tips :D
 
 EOF
 }
 
-while getopts c:AFvghfu opt
+while getopts c:Avghfu opt
 do
   case "$opt" in
     c) checkerip=True ; check_ip_arg="$OPTARG";;
@@ -223,7 +211,6 @@ do
     u) checkufw=True ;;
     f) fuzzy=True ;;
     A) auto=True ;;
-    F) flush=True ;;
     v) verbose=True ;;
     h) help ;;
     *) echo 'wrong selection, exit...' ;;
@@ -234,7 +221,7 @@ done
 sense_check
 
 # Run functions...
-[[ $checkerip == True ]] && check_ip "$check_ip_arg"
+[[ $checkerip == True ]] && check_ip "$check_ip_arg" && exit
 [[ $getblock == True ]] && get_block
-[[ $checkufw == True ]] && check_ufw
+[[ $checkufw == True ]] && check_ufw && exit
 [[ $fuzzy == True ]] && add_rules_fuz || [[ $auto == True ]] && add_rules_auto

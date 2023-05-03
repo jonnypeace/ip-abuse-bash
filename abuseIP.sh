@@ -84,7 +84,11 @@ function check_ufw {
     if [[ ${3/,/} -gt 20 && ${7/,/} -gt 5 ]]; then
       # This Filters out ipv6
       if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
-        if ! grep -q "^${1}$" "$ipsets_file" && ! grep -Eq "^${1}.*timeout" "$ipsets_file" ; then
+        # ipset list can translate shortcut addresses differently. 
+        # So this ip6 variable is used to help with potential possibilities.
+        ip6="${ip//::/:0:}"
+        if ! grep -q "^${1}$" "$ipsets_file" && ! grep -Eq "^${1}.*timeout" "$ipsets_file" &&
+            ! grep -q "^${ip6}$" "$ipsets_file" && ! grep -Eq "^${ip6}.*timeout" "$ipsets_file" ; then
           sudo ipset add myset6 "$ip"/128 timeout "$timeout"
         fi
         continue
@@ -116,6 +120,8 @@ function add_rules_fuz {
   
   # fzf multiselect list for adding to ipset
   mapfile -t iplist < <(find "$ip_file_path" -maxdepth 1 -type f -iname "*.ip" | fzf -m --reverse)
+  [[ -z ${iplist[*]} ]] && exit
+
   # coounters for file number b and ip number a
   a=0
   b=1
@@ -130,7 +136,11 @@ function add_rules_fuz {
       if [[ $# == 1 || ${3/,/} -gt 20 && ${7/,/} -gt 5 ]]; then
         # This filters out ipv6
         if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
-          if ! grep -q "^${1}$" "$ipsets_file" && ! grep -Eq "^${1}.*timeout" "$ipsets_file" ; then
+          # ipset list can translate shortcut addresses differently. 
+          # So this ip6 variable is used to help with potential possibilities.
+          ip6="${ip//::/:0:}"
+          if ! grep -q "^${1}$" "$ipsets_file" && ! grep -Eq "^${1}.*timeout" "$ipsets_file" &&
+            ! grep -q "^${ip6}$" "$ipsets_file" && ! grep -Eq "^${ip6}.*timeout" "$ipsets_file" ; then
             sudo ipset add myset6 "$ip"/128 timeout "$timeout"
           fi  
           continue
@@ -168,7 +178,11 @@ function add_rules_auto {
       if [[ $# == 1 || ${3/,/} -gt 20 && ${7/,/} -gt 5 ]]; then
         # This filters out ipv6
         if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
-          if ! grep -q "^${1}$" "$ipsets_file" && ! grep -Eq "^${1}.*timeout" "$ipsets_file" ; then
+          # ipset list can translate shortcut addresses differently. 
+          # So this ip6 variable is used to help with potential possibilities.
+          ip6="${ip//::/:0:}"
+          if ! grep -q "^${ip}$" "$ipsets_file" && ! grep -Eq "^${ip}.*timeout" "$ipsets_file" &&
+            ! grep -q "^${ip6}$" "$ipsets_file" && ! grep -Eq "^${ip6}.*timeout" "$ipsets_file" ; then
             sudo ipset add myset6 "$ip"/128 timeout "$timeout"
           fi  
           continue

@@ -4,7 +4,7 @@
 timeout='1209600'
 
 # This will be used in the find command, to find all .ip files to scan and automate ipset rules.
-ip_file_path="$HOME/git/ip-abuse-bash"
+ip_file_path="$HOME/ip-abuse-bash"
 
 # API Key file from abuse ip db
 my_abuse_API="$ip_file_path/api.key"
@@ -51,7 +51,7 @@ function check_ip {
     -d verbose \
     -H "Key: $API_KEY" \
     -H "Accept: application/json" > "$json_file"
-  
+
   if [[ $verbose == True ]]; then
     jq -r '.data' "$json_file"
   else
@@ -63,7 +63,7 @@ function check_ufw {
   # Get a list of current ips in block list.
   #ipsets_file='/home/jonny/ip-abuse-bash/ipset.list'
   sudo ipset --list > "$ipsets_file"
-  
+
   #testip='/home/jonny/ip-abuse-bash/test.ip'
   # empty test.ip file
   truncate -s 0 "$testip"
@@ -73,7 +73,7 @@ function check_ufw {
     while IFS= read -r ip; do
       check_ip "$ip" >> "$testip"
     done
-    
+
   # coounter for number of ips
   a=0
   ip_num=$(wc -l "$testip" | cut -d ' ' -f1)
@@ -83,18 +83,16 @@ function check_ufw {
     ip="$1"
     if [[ ${3/,/} -gt 20 && ${7/,/} -gt 5 ]]; then
       # This Filters out ipv6
-      if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
-        # ipset list can translate shortcut addresses differently. 
+      if [[ $ip =~ ([0-9a-fA-F]{0,4}:){0,7}[0-9a-fA-F]{0,4} ]]; then
+        # ipset list can translate shortcut addresses differently.
         # So this ip6 variable is used to help with potential possibilities.
-        ip6="${ip//::/:0:}"
-        if ! grep -q "^${1}$" "$ipsets_file" && ! grep -Eq "^${1}.*timeout" "$ipsets_file" &&
-            ! grep -q "^${ip6}$" "$ipsets_file" && ! grep -Eq "^${ip6}.*timeout" "$ipsets_file" ; then
-          sudo ipset add myset6 "$ip"/128 timeout "$timeout"
+        if ! grep -q "${BASH_REMATCH[0]}" "$ipsets_file" ; then
+          sudo ipset add myset6 "${ip}/128" timeout "$timeout"
         fi
-        continue
       fi
-      if ! grep -q "^${1}$" "$ipsets_file" && ! grep -Eq "^${1}.*timeout" "$ipsets_file" ; then
-         sudo ipset add myset "$1" timeout "$timeout"
+      if ! grep -q "${ip}" "$ipsets_file" && grep -Eq '([0-9]{1,3}\.){3}[0-9]{1,3}' <<< "${ip}" ; then
+				echo "ipv4"
+        sudo ipset add myset "${ip}" timeout "$timeout"
       fi
       (( a++ ))
       printf '%s\033[0K\r' "Progressing ips $a of $ip_num total"
@@ -117,7 +115,7 @@ function add_rules_fuz {
   # Get a list of current ips in block list.
   #ipsets_file='/home/jonny/ip-abuse-bash/ipset.list'
   sudo ipset --list > "$ipsets_file"
-  
+
   # fzf multiselect list for adding to ipset
   mapfile -t iplist < <(find "$ip_file_path" -maxdepth 1 -type f -iname "*.ip" | fzf -m --reverse)
   [[ -z ${iplist[*]} ]] && exit
@@ -135,18 +133,15 @@ function add_rules_fuz {
       ip="$1"
       if [[ $# == 1 || ${3/,/} -gt 20 && ${7/,/} -gt 5 ]]; then
         # This filters out ipv6
-        if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
-          # ipset list can translate shortcut addresses differently. 
-          # So this ip6 variable is used to help with potential possibilities.
-          ip6="${ip//::/:0:}"
-          if ! grep -q "^${1}$" "$ipsets_file" && ! grep -Eq "^${1}.*timeout" "$ipsets_file" &&
-            ! grep -q "^${ip6}$" "$ipsets_file" && ! grep -Eq "^${ip6}.*timeout" "$ipsets_file" ; then
-            sudo ipset add myset6 "$ip"/128 timeout "$timeout"
-          fi  
-          continue
+      	if [[ $ip =~ ([0-9a-fA-F]{0,4}:){0,7}[0-9a-fA-F]{0,4} ]]; then
+          # ipset list can translate shortcut addresses differently.
+        	if ! grep -q "${BASH_REMATCH[0]}" "$ipsets_file" ; then
+            sudo ipset add myset6 "${ip}"/128 timeout "$timeout"
+          fi
         fi
-        if ! grep -q "^${ip}$" "$ipsets_file" && ! grep -Eq "^${ip}.*timeout" "$ipsets_file"; then
-          sudo ipset add myset "${ip}" timeout "$timeout"
+      	if ! grep -q "${ip}" "$ipsets_file" && grep -Eq '([0-9]{1,3}\.){3}[0-9]{1,3}' <<< "${ip}" ; then
+					echo "ipv4"
+        	sudo ipset add myset "${ip}" timeout "$timeout"
         fi
         (( a++ ))
         printf '%s\033[0K\r' "Progressing file $b of $file_num, ips $a of $ip_num total"
@@ -165,7 +160,7 @@ function add_rules_auto {
 
   mapfile -t iplist < <(find "$ip_file_path" -maxdepth 1 -type f -iname "*.ip")
   # counters for file number b and ip number a
-  a=0  
+  a=0
   b=1
   file_num="${#iplist[@]}"
   for file in "${iplist[@]}"; do
@@ -177,17 +172,14 @@ function add_rules_auto {
       ip="$1"
       if [[ $# == 1 || ${3/,/} -gt 20 && ${7/,/} -gt 5 ]]; then
         # This filters out ipv6
-        if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
-          # ipset list can translate shortcut addresses differently. 
-          # So this ip6 variable is used to help with potential possibilities.
-          ip6="${ip//::/:0:}"
-          if ! grep -q "^${ip}$" "$ipsets_file" && ! grep -Eq "^${ip}.*timeout" "$ipsets_file" &&
-            ! grep -q "^${ip6}$" "$ipsets_file" && ! grep -Eq "^${ip6}.*timeout" "$ipsets_file" ; then
+      	if [[ $ip =~ ([0-9a-fA-F]{0,4}:){0,7}[0-9a-fA-F]{0,4} ]]; then
+          # ipset list can translate shortcut addresses differently.
+        	if ! grep -q "${BASH_REMATCH[0]}" "$ipsets_file" ; then
             sudo ipset add myset6 "$ip"/128 timeout "$timeout"
-          fi  
-          continue
+          fi
         fi
-        if ! grep -q "^${ip}$" "$ipsets_file" && ! grep -Eq "^${ip}.*timeout" "$ipsets_file"; then
+      	if ! grep -q "${ip}" "$ipsets_file" && grep -Eq '([0-9]{1,3}\.){3}[0-9]{1,3}' <<< "${ip}" ; then
+					echo "ipv4"
           sudo ipset add myset "${ip}" timeout "$timeout"
         fi
         (( a++ ))
@@ -217,7 +209,17 @@ Option -h : Help tips :D
 EOF
 }
 
-while getopts c:Avghfu opt
+function report {
+	curl https://api.abuseipdb.com/api/v2/report \
+  --data-urlencode "ip=$1" \
+  -d categories=14 \
+  --data-urlencode "comment=Bad HTTP user agent" \
+  -H "Key: $API_KEY" \
+  -H "Accept: application/json"
+	}
+
+
+while getopts c:Avghfur: opt
 do
   case "$opt" in
     c) checkerip=True ; check_ip_arg="$OPTARG";;
@@ -226,6 +228,7 @@ do
     f) fuzzy=True ;;
     A) auto=True ;;
     v) verbose=True ;;
+		r) reporter=True ; report_ip="$OPTARG";;
     h) help ;;
     *) echo 'wrong selection, exit...' ;;
   esac
@@ -235,6 +238,7 @@ done
 sense_check
 
 # Run functions...
+[[ $reporter == True ]] && report "$report_ip"
 [[ $checkerip == True ]] && check_ip "$check_ip_arg" && exit
 [[ $getblock == True ]] && get_block
 [[ $checkufw == True ]] && check_ufw && exit

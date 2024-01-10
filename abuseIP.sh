@@ -44,7 +44,6 @@ function sense_check {
 
 function check_ip {
   #checks ip and outputs to json file
-  #local json_file='/home/jonny/ip-abuse-bash/newest_ip_check.json'
   curl -sG https://api.abuseipdb.com/api/v2/check \
     --data-urlencode "ipAddress=$1" \
     -d maxAgeInDays=90 \
@@ -61,7 +60,6 @@ function check_ip {
 
 function check_ufw {
   # Get a list of current ips in block list.
-  #ipsets_file='/home/jonny/ip-abuse-bash/ipset.list'
   sudo ipset --list > "$ipsets_file"
 
   #testip='/home/jonny/ip-abuse-bash/test.ip'
@@ -91,7 +89,6 @@ function check_ufw {
         fi
       fi
       if ! grep -q "${ip}" "$ipsets_file" && grep -Eq '([0-9]{1,3}\.){3}[0-9]{1,3}' <<< "${ip}" ; then
-				echo "ipv4"
         sudo ipset add myset "${ip}" timeout "$timeout"
       fi
       (( a++ ))
@@ -113,7 +110,6 @@ function get_block {
 
 function add_rules_fuz {
   # Get a list of current ips in block list.
-  #ipsets_file='/home/jonny/ip-abuse-bash/ipset.list'
   sudo ipset --list > "$ipsets_file"
 
   # fzf multiselect list for adding to ipset
@@ -140,7 +136,6 @@ function add_rules_fuz {
           fi
         fi
       	if ! grep -q "${ip}" "$ipsets_file" && grep -Eq '([0-9]{1,3}\.){3}[0-9]{1,3}' <<< "${ip}" ; then
-					echo "ipv4"
         	sudo ipset add myset "${ip}" timeout "$timeout"
         fi
         (( a++ ))
@@ -155,7 +150,6 @@ function add_rules_fuz {
 }
 function add_rules_auto {
   # Get a list of current ips in block list.
-  #ipsets_file='/home/jonny/ip-abuse-bash/ipset.list'
   sudo ipset --list > "$ipsets_file"
 
   mapfile -t iplist < <(find "$ip_file_path" -maxdepth 1 -type f -iname "*.ip")
@@ -179,7 +173,6 @@ function add_rules_auto {
           fi
         fi
       	if ! grep -q "${ip}" "$ipsets_file" && grep -Eq '([0-9]{1,3}\.){3}[0-9]{1,3}' <<< "${ip}" ; then
-					echo "ipv4"
           sudo ipset add myset "${ip}" timeout "$timeout"
         fi
         (( a++ ))
